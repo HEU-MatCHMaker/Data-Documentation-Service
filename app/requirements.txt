@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-multipart
+jinja2
+tripper 
+rdflib
+SPARQLWrapper
+requests
+aiohttp
