@@ -23,14 +23,21 @@ async def main(request: Request):
 
 
 @app.post("/uploadDocumentation/")
-async def upload_Documentation(file: UploadFile = File(None), url: str = Form(None)):
+async def upload_Documentation(
+    request: Request, file: UploadFile = File(None), url: str = Form(None)
+):
     """Add Documentation from an Excel sheet"""
     ts = Triplestore("sparqlwrapper", base_iri=select_iri, update_iri=update_iri)
     if file and file.filename.endswith((".xls", ".xlsx", ".csv")):
-        # Handle file upload
         with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as temp_file:
             temp_file.write(await file.read())
             temp_file_path = temp_file.name
+        try:
+            td = TableDoc.parse_csv(temp_file_path)
+            td.save(ts)
+        finally:
+            os.remove(temp_file_path)
+            result_message = f"{file.filename if file else url} has populated the Graph"
     elif url:
         try:
             parsed_url = urlparse(url)
@@ -49,7 +56,7 @@ async def upload_Documentation(file: UploadFile = File(None), url: str = Form(No
                         )
             td = TableDoc.parse_csv(url)
             td.save(ts)
-            return f"The Graph is populated from the URL"
+            result_message = "The Graph is populated from the URL"
         except HTTPException as http_exc:
             raise http_exc
         except Exception as e:
@@ -58,10 +65,6 @@ async def upload_Documentation(file: UploadFile = File(None), url: str = Form(No
     else:
         raise HTTPException(status_code=400, detail="No file or URL provided.")
 
-    try:
-        td = TableDoc.parse_csv(temp_file_path)
-        td.save(ts)
-    finally:
-        os.remove(temp_file_path)
-
-    return f"{file.filename if file else url} has populated the Graph"
+    return templates.TemplateResponse(
+        "result.html", {"result_message": result_message, "request": request}
+    )

@@ -1,55 +1,20 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
 
-<head>
-    <title>Upload or Provide URL for Excel File</title>
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            font-family: Arial, sans-serif;
-        }
-        .container {
-            text-align: center;
-            border: 1px solid #ccc;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        input[type="file"],
-        input[type="text"],
-        input[type="submit"] {
-            margin: 10px 0;
-            padding: 10px;
-            width: 80%;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        input[type="submit"] {
-            background-color: #4CAF50;
-            color: white;
-            cursor: pointer;
-        }
-        input[type="submit"]:hover {
-            background-color: #45a049;
-        }
-    </style>
-</head>
+{% block title %}Upload{% endblock %}
+
+{% block content %}
+<h1>Provide File or URL for data documentation</h1>
 
 <body>
-    <div class="container">
-        <h1>Upload an Excel file or Provide a Download URL</h1>
+    <div class="innercontainer">
         <form action="/uploadDocumentation/" enctype="multipart/form-data" method="post">
             <label for="file">Upload File:</label>
             <input name="file" type="file"><br><br>
-            <label for="url">Or Provide URL:</label>
+            <p style="text-align: center;">or</p>
+            <label for="url">File URL:</label>
             <input name="url" type="text" placeholder="Enter download URL"><br><br>
             <input type="submit">
         </form>
     </div>
 </body>
-
-</html>
+{% endblock %}
