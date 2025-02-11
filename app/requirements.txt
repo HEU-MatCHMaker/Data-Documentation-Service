@@ -6,4 +6,4 @@ tripper
 rdflib
 SPARQLWrapper
 requests
-pandas
+aiohttp

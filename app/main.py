@@ -1,12 +1,13 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 from tripper.datadoc import TableDoc
 from tripper import Triplestore
-import pandas as pd
+import aiohttp
 import os
 import tempfile
+from urllib.parse import urlparse, parse_qs
 
 app = FastAPI()
 
@@ -22,24 +23,45 @@ async def main(request: Request):
 
 
 @app.post("/uploadDocumentation/")
-async def upload_Documentation(file: UploadFile = File(...)):
-    """Add Documentation from an Excel sheel"""
-    if not file.filename.endswith((".xls", ".xlsx", ".csv")):
-        raise HTTPException(
-            status_code=400, detail="Invalid file type. Please upload an Excel file."
-        )
+async def upload_Documentation(file: UploadFile = File(None), url: str = Form(None)):
+    """Add Documentation from an Excel sheet"""
     ts = Triplestore("sparqlwrapper", base_iri=select_iri, update_iri=update_iri)
-    # td = TableDoc.parse_csv(
-    #     "https://raw.githubusercontent.com/HEU-MatCHMaker/DataDocumentation/refs/heads/sem-example/examples/SEM_cement_batch2/input/datasets.csv"
-    # )
+    if file and file.filename.endswith((".xls", ".xlsx", ".csv")):
+        # Handle file upload
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as temp_file:
+            temp_file.write(await file.read())
+            temp_file_path = temp_file.name
+    elif url:
+        try:
+            parsed_url = urlparse(url)
+            file_name = os.path.basename(parsed_url.path)
+            if not file_name.lower().endswith((".xls", ".xlsx", ".csv")):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid file type. Please provide a valid Excel or CSV file URL.",
+                )
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    if response.status != 200:
+                        raise HTTPException(
+                            status_code=400,
+                            detail="Invalid URL or unable to download file.",
+                        )
+            td = TableDoc.parse_csv(url)
+            td.save(ts)
+            return f"The Graph is populated from the URL"
+        except HTTPException as http_exc:
+            raise http_exc
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as temp_file:
-        temp_file.write(await file.read())
-        temp_file_path = temp_file.name
+    else:
+        raise HTTPException(status_code=400, detail="No file or URL provided.")
 
     try:
         td = TableDoc.parse_csv(temp_file_path)
+        td.save(ts)
     finally:
         os.remove(temp_file_path)
-    td.save(ts)
-    return f"{file.filename} had populated the Graph"
+
+    return f"{file.filename if file else url} has populated the Graph"
