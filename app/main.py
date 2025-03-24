@@ -12,9 +12,14 @@ from urllib.parse import urlparse, parse_qs
 app = FastAPI()
 
 templates = Jinja2Templates(directory="templates")
+
+# Graph @SINTEF
 select_iri = "http://10.218.121.139:7200/repositories/MatCHMaker"
 update_iri = "http://10.218.121.139:7200/repositories/MatCHMaker/statements"
 
+# Graph @SIMAVI
+# select_iri = "http://10.222.30.203:7200/repositories/MatchMaker"
+# update_iri = "http://10.222.30.203:7200/repositories/MatchMaker/statements"
 
 @app.get("/", response_class=HTMLResponse)
 async def main(request: Request):
